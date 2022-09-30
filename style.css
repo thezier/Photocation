@@ -155,12 +155,6 @@ a:visited {
 
 .form__row {
   display: flex;
-  align-items: center;
-}
-
-.long__row {
-  display: flex;
-  width: 100%;
 }
 
 .form__row--hidden {
@@ -168,13 +162,14 @@ a:visited {
 }
 
 .form__label {
-  flex: 0 0 50%;
+  flex: 0 0 44%;
   font-size: 1.5rem;
   font-weight: 600;
+  padding: 3%;
 }
 
 .form__input {
-  width: 100%;
+  width: 99%;
   padding: 0.3rem 1.1rem;
   font-family: inherit;
   font-size: 1.4rem;
@@ -186,7 +181,6 @@ a:visited {
 
 .form__input:focus {
   outline: none;
-  background-color: #fff;
 }
 
 .form__btn {

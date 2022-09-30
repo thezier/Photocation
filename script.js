@@ -7,17 +7,14 @@ class Location {
 
   constructor(coords, start, end) {
     this.coords = coords; // [lat, lng]
-    this.start = start; // Time
-    this.end = end; // Time
+    this.start = start; // Start Time
+    this.end = end; // End Time
   }
 
   _setDescription() {
-    // prettier-ignore
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-
-    this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
-      months[this.date.getMonth()]
-    } ${this.date.getDate()}`;
+    this.description = `${this.type[0].toUpperCase()}${this.type.slice(
+      1
+    )} Here`;
   }
 
   click() {
@@ -32,17 +29,10 @@ class Shoot extends Location {
     this._setDescription();
   }
 }
-class Meeting extends Location {
-  type = 'meeting';
-  constructor(coords, arrival) {
-    super(coords, arrival);
-    this._setDescription();
-  }
-}
 class Parking extends Location {
   type = 'parking';
-  constructor(coords, arrival) {
-    super(coords, arrival);
+  constructor(coords, start) {
+    super(coords, start);
     this._setDescription();
   }
 }
@@ -52,16 +42,14 @@ class Parking extends Location {
 const form = document.querySelector('.form');
 const containerLocations = document.querySelector('.locations');
 const inputType = document.querySelector('.form__input--type');
-const inputDistance = document.querySelector('.form__input--distance');
-const inputDuration = document.querySelector('.form__input--duration');
-const inputCadence = document.querySelector('.form__input--cadence');
-const inputElevation = document.querySelector('.form__input--elevation');
+const inputStart = document.querySelector('.form__input--start');
+const inputEnd = document.querySelector('.form__input--end');
 
 class App {
   #map;
   #mapZoomLevel = 13;
   #mapEvent;
-  #workouts = [];
+  #locations = [];
 
   constructor() {
     this._getPosition();
@@ -70,9 +58,9 @@ class App {
     this._getLocalStoarge();
 
     // Attach event handlers
-    form.addEventListener('submit', this._newWorkout.bind(this));
-    inputType.addEventListener('change', this._toggleElevationField);
-    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
+    form.addEventListener('submit', this._newLocation.bind(this));
+    inputType.addEventListener('change', this._toggleEndField);
+    containerLocations.addEventListener('click', this._moveToPopup.bind(this));
   }
 
   _getPosition() {
@@ -101,93 +89,68 @@ class App {
     // Handling clicks on map
     this.#map.on('click', this._showForm.bind(this));
 
-    this.#workouts.forEach(work => {
-      this._renderWorkoutMarker(work);
+    this.#locations.forEach(loc => {
+      this._renderLocationMarker(loc);
     });
   }
 
   _showForm(mapE) {
     this.#mapEvent = mapE;
     form.classList.remove('hidden');
-    inputDistance.focus();
+    inputStart.focus();
   }
 
   _hideForm() {
     // Empty inputs
-    inputDistance.value =
-      inputDuration.value =
-      inputCadence.value =
-      inputElevation.value =
-        '';
+    inputStart.value = inputEnd.value = '';
     form.style.display = 'none';
     form.classList.add('hidden');
     setTimeout(() => (form.style.display = 'grid'), 1000);
   }
 
-  _toggleElevationField() {
-    inputElevation.closest('.form__row').classList.toggle('form__row--hidden');
-    inputCadence.closest('.form__row').classList.toggle('form__row--hidden');
+  _toggleEndField() {
+    inputEnd.closest('.form__row').classList.toggle('form__row--hidden');
   }
 
-  _newWorkout(e) {
-    const validInputs = (...inputs) =>
-      inputs.every(inp => Number.isFinite(inp));
-    const allPositive = (...inputs) => inputs.every(inp => inp > 0);
-
+  _newLocation(e) {
     e.preventDefault();
 
     // Get data from form
     const type = inputType.value;
-    const distance = +inputDistance.value;
-    const duration = +inputDuration.value;
+    const start = inputStart.value;
+    const end = inputEnd.value;
     const { lat, lng } = this.#mapEvent.latlng;
-    let workout;
+    let location;
 
-    // If activity is Running, create Running object
-    if (type === 'running') {
-      const cadence = +inputCadence.value;
-      // Check if data is valid
-      if (
-        !validInputs(distance, duration, cadence) ||
-        !allPositive(distance, duration, cadence)
-      )
-        return alert('Inputs have to be positive numbers!');
-
-      workout = new Running([lat, lng], distance, duration, cadence);
+    // If activity is Shoot, create Shoot object
+    if (type === 'shoot') {
+      location = new Shoot([lat, lng], start, end);
     }
 
-    // If activity is Cycling, create Cycluing object
-    if (type === 'cycling') {
-      const elevation = +inputElevation.value;
-      // Check if data is valid
-      if (
-        !validInputs(distance, duration, elevation) ||
-        !allPositive(distance, duration)
-      )
-        return alert('Inputs have to be positive numbers!');
-
-      workout = new Cycling([lat, lng], distance, duration, elevation);
+    // If activity is Parking, create Parking object
+    if (type === 'parking') {
+      location = new Parking([lat, lng], start);
     }
 
-    // Add new object to workout array
-    this.#workouts.push(workout);
+    // Add new object to location array
+    this.#locations.push(location);
 
-    // Render workout on map as marker
-    this._renderWorkoutMarker(workout);
+    // Render location on map as marker
+    this._renderLocationMarker(location);
 
-    // Render workout on list
-    this._renderWorkout(workout);
+    // Render location on list
+    this._renderLocation(location);
 
     // Hide form + clear input fields
     this._hideForm();
 
-    // Set local storage to all workouts
+    // Set local storage to all locations
     this._setLocalStorage();
   }
 
   // Display Marker
-  _renderWorkoutMarker(workout) {
-    L.marker(workout.coords)
+  _renderLocationMarker(location) {
+    L.marker(location.coords)
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -195,71 +158,51 @@ class App {
           minWidth: 100,
           autoClose: false,
           closeOnClick: false,
-          className: `${workout.type}-popup`,
+          className: `${location.type}-popup`,
         })
       )
       .setPopupContent(
-        `${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`
+        `${location.type === 'shoot' ? '📷' : '🅿️'} ${location.description}`
       )
       .openPopup();
   }
 
-  _renderWorkout(workout) {
+  _renderLocation(location) {
     let html = `
-      <li class="workout workout--${workout.type}" data-id="${workout.id}">
-        <h2 class="workout__title">${workout.description}</h2>
-        <div class="workout__details">
-          <span class="workout__icon">${
-            workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'
-          }</span>
-          <span class="workout__value">${workout.distance}</span>
-          <span class="workout__unit">km</span>
-        </div>
-        <div class="workout__details">
-          <span class="workout__icon">⏱</span>
-          <span class="workout__value">${workout.duration}</span>
-          <span class="workout__unit">min</span>
-        </div>
+      <li class="location location--${location.type}" data-id="${location.id}">
+        <h2 class="location__title">${location.description}</h2>
         `;
-    if (workout.type === 'running')
+    if (location.type === 'shoot')
       html += `
-        <div class="workout__details">
-          <span class="workout__icon">⚡️</span>
-          <span class="workout__value">${workout.pace.toFixed(1)}</span>
-          <span class="workout__unit">min/km</span>
+      <div class="location__details">
+          <span class="location__icon">🟢 </span>
+          <span class="location__value">${location.start}</span>
         </div>
-        <div class="workout__details">
-          <span class="workout__icon">🦶🏼</span>
-          <span class="workout__value">${workout.cadence}</span>
-          <span class="workout__unit">spm</span>
-        </div>
+      <div class="location__details">
+        <span class="location__icon">🛑 </span>
+        <span class="location__value">${location.end}</span>
+      </div>
       </li>`;
-    if (workout.type === 'cycling')
+    if (location.type === 'parking')
       html += `
-        <div class="workout__details">
-          <span class="workout__icon">⚡️</span>
-          <span class="workout__value">${workout.speed.toFixed(1)}</span>
-          <span class="workout__unit">km/h</span>
-        </div>
-        <div class="workout__details">
-          <span class="workout__icon">⛰</span>
-          <span class="workout__value">${workout.elevationGain}</span>
-          <span class="workout__unit">m</span>
-        </div>
+      <div class="location__details">
+      <span class="location__icon">🅿️ </span>
+      <span class="location__value">${location.start}</span>
+    </div>
       </li>`;
 
     form.insertAdjacentHTML('afterend', html);
   }
   _moveToPopup(e) {
-    const workoutEl = e.target.closest('.workout');
+    const locationEl = e.target.closest('.location');
 
-    if (!workoutEl) return;
+    if (!locationEl) return;
 
-    const workout = this.#workouts.find(
-      work => work.id === workoutEl.dataset.id
+    const location = this.#locations.find(
+      loc => loc.id === locationEl.dataset.id
     );
 
-    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+    this.#map.setView(location.coords, this.#mapZoomLevel, {
       animate: true,
       pan: {
         duration: 1,
@@ -268,22 +211,22 @@ class App {
   }
 
   _setLocalStorage() {
-    localStorage.setItem('workouts', JSON.stringify(this.#workouts));
+    localStorage.setItem('locations', JSON.stringify(this.#locations));
   }
 
   _getLocalStoarge() {
-    const data = JSON.parse(localStorage.getItem('workouts'));
+    const data = JSON.parse(localStorage.getItem('locations'));
 
     if (!data) return;
 
-    this.#workouts = data;
-    this.#workouts.forEach(work => {
-      this._renderWorkout(work);
+    this.#locations = data;
+    this.#locations.forEach(loc => {
+      this._renderLocation(loc);
     });
   }
 
   reset() {
-    localStorage.removeItem('workouts');
+    localStorage.removeItem('locations');
     location.reload();
   }
 }
