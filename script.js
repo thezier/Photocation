@@ -5,10 +5,11 @@ class Location {
   id = (Date.now() + '').slice(-10);
   clicks = 0;
 
-  constructor(coords, start, end) {
+  constructor(coords, start, end, arrival) {
     this.coords = coords; // [lat, lng]
     this.start = start; // Start Time
     this.end = end; // End Time
+    this.arrival = arrival; // Arrival Time (Parking)
   }
 
   _setDescription() {
@@ -31,8 +32,8 @@ class Shoot extends Location {
 }
 class Parking extends Location {
   type = 'parking';
-  constructor(coords, start) {
-    super(coords, start);
+  constructor(coords, arrival) {
+    super(coords, arrival);
     this._setDescription();
   }
 }
@@ -44,6 +45,7 @@ const containerLocations = document.querySelector('.locations');
 const inputType = document.querySelector('.form__input--type');
 const inputStart = document.querySelector('.form__input--start');
 const inputEnd = document.querySelector('.form__input--end');
+const inputArrival = document.querySelector('.form__input--arrival');
 
 class App {
   #map;
@@ -60,6 +62,8 @@ class App {
     // Attach event handlers
     form.addEventListener('submit', this._newLocation.bind(this));
     inputType.addEventListener('change', this._toggleEndField);
+    inputType.addEventListener('change', this._toggleStartField);
+    inputType.addEventListener('change', this._toggleArrivalField);
     containerLocations.addEventListener('click', this._moveToPopup.bind(this));
   }
 
@@ -97,19 +101,25 @@ class App {
   _showForm(mapE) {
     this.#mapEvent = mapE;
     form.classList.remove('hidden');
-    inputStart.focus();
+    inputStart.value !== '' ? inputStart.focus() : inputArrival.focus();
   }
 
   _hideForm() {
     // Empty inputs
-    inputStart.value = inputEnd.value = '';
+    inputStart.value = inputArrival.value = inputEnd.value = '';
     form.style.display = 'none';
     form.classList.add('hidden');
     setTimeout(() => (form.style.display = 'grid'), 1000);
   }
 
   _toggleEndField() {
-    inputEnd.closest('.form__row').classList.toggle('form__row--hidden');
+    inputEnd.closest('.end').classList.toggle('form__row--hidden');
+  }
+  _toggleArrivalField() {
+    inputArrival.closest('.arrival').classList.toggle('form__row--hidden');
+  }
+  _toggleStartField() {
+    inputStart.closest('.start').classList.toggle('form__row--hidden');
   }
 
   _newLocation(e) {
@@ -119,6 +129,7 @@ class App {
     const type = inputType.value;
     const start = inputStart.value;
     const end = inputEnd.value;
+    const arrival = inputArrival.value;
     const { lat, lng } = this.#mapEvent.latlng;
     let location;
 
@@ -129,7 +140,7 @@ class App {
 
     // If activity is Parking, create Parking object
     if (type === 'parking') {
-      location = new Parking([lat, lng], start);
+      location = new Parking([lat, lng], arrival);
     }
 
     // Add new object to location array
@@ -176,18 +187,18 @@ class App {
       html += `
       <div class="location__details">
           <span class="location__icon">🟢 </span>
-          <span class="location__value">${location.start}</span>
+          <span class="location__value">Start Time: <b>${location.start}</b></span>
         </div>
       <div class="location__details">
         <span class="location__icon">🛑 </span>
-        <span class="location__value">${location.end}</span>
+        <span class="location__value">End Time: <b>${location.end}</b></span>
       </div>
       </li>`;
     if (location.type === 'parking')
       html += `
       <div class="location__details">
       <span class="location__icon">🅿️ </span>
-      <span class="location__value">${location.start}</span>
+      <span class="location__value">Arrival Time: <b>${location.start}</b></span>
     </div>
       </li>`;
 
@@ -213,6 +224,10 @@ class App {
   _setLocalStorage() {
     localStorage.setItem('locations', JSON.stringify(this.#locations));
   }
+
+  // _removeLocalStorage() {
+
+  // }
 
   _getLocalStoarge() {
     const data = JSON.parse(localStorage.getItem('locations'));

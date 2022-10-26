@@ -45,7 +45,8 @@
               <option value="parking">Parking Location</option>
             </select>
           </div>
-          <div class="form__row">
+
+          <div class="form__row start">
             <label class="form__label">Start:</label>
             <input
               class="form__input form__input--start"
@@ -53,7 +54,15 @@
               placeholder="0:00 PM"
             />
           </div>
-          <div class="form__row">
+          <div class="form__row arrival form__row--hidden">
+            <label class="form__label">Arrival:</label>
+            <input
+              class="form__input form__input--arrival"
+              type="time"
+              placeholder="0:00 PM"
+            />
+          </div>
+          <div class="form__row end">
             <label class="form__label">End:</label>
             <input
               class="form__input form__input--end"
