@@ -41,6 +41,7 @@ class Parking extends Location {
 ////////////////////////////////////////////////////////
 // APPLICATION ARCHITECTURE
 const form = document.querySelector('.form');
+const formDelete = document.querySelector('.form__delete');
 const containerLocations = document.querySelector('.locations');
 const inputType = document.querySelector('.form__input--type');
 const inputStart = document.querySelector('.form__input--start');
@@ -151,6 +152,7 @@ class App {
 
     // Render location on list
     this._renderLocation(location);
+    formDelete.classList.remove('.hidden');
 
     // Hide form + clear input fields
     this._hideForm();
@@ -181,6 +183,7 @@ class App {
   _renderLocation(location) {
     let html = `
       <li class="location location--${location.type}" data-id="${location.id}">
+      <div class="form__delete hidden">🅧</div>
         <h2 class="location__title">${location.description}</h2>
         `;
     if (location.type === 'shoot')
